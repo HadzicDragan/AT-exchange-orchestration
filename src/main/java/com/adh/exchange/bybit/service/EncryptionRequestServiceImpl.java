@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
-public class EncryptionRequestServiceImpl implements EncryptionRequestService{
+public class EncryptionRequestServiceImpl implements EncryptionRequestService {
 
     private static final String API_KEY = "X-BAPI-API-KEY";
     private static final String API_SIGNATURE = "X-BAPI-SIGN";
