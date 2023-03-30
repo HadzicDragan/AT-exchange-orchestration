@@ -1,6 +1,10 @@
 package com.adh.exchange.bybit;
 
+import com.adh.exchange.IllegalConfigurationException;
 import org.springframework.stereotype.Component;
+
+import java.time.Instant;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * In order to make requests to Bybit we need to retrieve the Server time and add it inside the header.
@@ -13,11 +17,48 @@ import org.springframework.stereotype.Component;
 @Component
 public class LastRequestTimer {
 
+    private final AtomicInteger requests = new AtomicInteger(0);
+    private Instant lastUpdatedTime;
+    private final TimePair pair;
+
+    public LastRequestTimer(final TimePair timePair) {
+        this.pair = timePair;
+    }
+
     /**
      * TODO - Add documentation
      */
-    public void updateRequest(final String seconds) {
+    public void updateRequest(final String seconds, final String nanoSeconds) {
+        this.pair.enableTime();
 
+        if (this.pair.timeIsNotInitialized()) {
+            this.setupInitialTime(seconds, nanoSeconds);
+            return;
+        }
+
+        final Instant exactCurrentTime = this.parseResponseInstant(seconds, nanoSeconds);
+        this.setupServerTime(exactCurrentTime);
+
+        final Instant currentAppTime = Instant.now();
+
+        final Instant reducedTime = exactCurrentTime.minusMillis(ClientUtils.RECV_WINDOW);
+
+        // reset the count
+        // this is not fully atomic, but just to have a metric for the start
+        // afterwards there will be more fine-grained checking of time.
+        if (isLastUpdatedTimeInvalid(reducedTime.toEpochMilli())) {
+            requests.set(0);
+            return;
+        }
+        requests.getAndIncrement();
+    }
+
+    private void setupInitialTime(final String seconds, final String nanoSeconds) {
+        final Instant exactCurrentTime = this.parseResponseInstant(seconds, nanoSeconds);
+        this.pair.setLastStoredServerTime(exactCurrentTime);
+        this.pair.setLastStoredCurrentAppTime();
+
+        this.requests.getAndIncrement();
     }
 
     /**
@@ -27,7 +68,13 @@ public class LastRequestTimer {
      * @return
      */
     public boolean isInvalidValidRequest() {
-       return true;
+        if (!this.pair.isTimeEnabled()) {
+            return false;
+        }
+
+        // do the comparison check
+
+        return ;
     }
 
     /**
@@ -44,6 +91,35 @@ public class LastRequestTimer {
      * @return
      */
     public String lastRequestTime() {
-        return "time";
+        return this.pair.;
+    }
+
+    private Instant parseResponseInstant(final String seconds, final String nanoSeconds) {
+        long serverSeconds;
+        long serverNanoSeconds;
+        try {
+            serverSeconds = Long.parseLong(seconds);
+            serverNanoSeconds = Long.parseLong(nanoSeconds);
+        } catch (NumberFormatException ex) {
+            // Invalid date format sent, log the exception
+            // change the exception type to custom!
+            throw new IllegalConfigurationException();
+        }
+        return Instant.ofEpochSecond(serverSeconds, serverNanoSeconds);
+    }
+
+    private void setupServerTime(final Instant currentTime) {
+        if (lastUpdatedTime == null) {
+            this.lastUpdatedTime = currentTime;
+        }
+    }
+
+    private boolean isLastUpdatedTimeValid(final long reducedTimeMilli) {
+        long reducedFromLastUpdatedTime = reducedTimeMilli - this.lastUpdatedTime.toEpochMilli();
+        return reducedFromLastUpdatedTime <= ClientUtils.RECV_WINDOW;
+    }
+
+    private boolean isLastUpdatedTimeInvalid(final long reducedTimeMilli) {
+        return this.isLastUpdatedTimeValid(reducedTimeMilli);
     }
 }

@@ -53,7 +53,7 @@ public class EncryptionRequestServiceImpl implements EncryptionRequestService {
         headers.put(API_KEY, this.secret.apiKey());
         headers.put(API_SIGNATURE, signature);
         headers.put(API_TIMESTAMP, serverTime);
-        headers.put(API_RECV_WINDOW, this.secret.getRecvWindow());
+        headers.put(API_RECV_WINDOW, String.valueOf(ClientUtils.RECV_WINDOW));
         return headers;
     }
 
@@ -83,12 +83,12 @@ public class EncryptionRequestServiceImpl implements EncryptionRequestService {
         sha256_HMAC.init(secretKey);
 
         final String paramJson = converter.writeObjectToString(params);
-        final String sb = serverTime + API_KEY + secret.getRecvWindow() + paramJson;
+        final String sb = serverTime + API_KEY + ClientUtils.RECV_WINDOW + paramJson;
         return bytesToHex(sha256_HMAC.doFinal(sb.getBytes()));
     }
 
     private String genGetSignature(final Map<String, Object> params, final String serverTime) throws NoSuchAlgorithmException, InvalidKeyException {
-        final String queryStr = serverTime + API_KEY + this.secret.getRecvWindow() + ClientUtils.genQueryStr(params);
+        final String queryStr = serverTime + API_KEY + ClientUtils.RECV_WINDOW + ClientUtils.genQueryStr(params);
 
         final Mac sha256_HMAC = Mac.getInstance(ENCRYPTION_ALGO);
         final SecretKeySpec secretKey = new SecretKeySpec(this.secret.apiSecret().getBytes(), ENCRYPTION_ALGO);

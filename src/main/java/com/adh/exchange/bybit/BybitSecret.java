@@ -17,8 +17,6 @@ public class BybitSecret implements ApiSecret {
     @Value("${api.secret}")
     private String apiSecret;
 
-    private static final String RECV_WINDOW = "5000";
-
     /**
      * Retrieve the API key for the account, if the key can not be fetched
      * exception will stop the program from continuing to function.
@@ -39,9 +37,5 @@ public class BybitSecret implements ApiSecret {
             throw new IllegalConfigurationException("api.secret configuration could not be retrieved.");
         }
         return apiSecret;
-    }
-
-    public String getRecvWindow() {
-        return RECV_WINDOW;
     }
 }

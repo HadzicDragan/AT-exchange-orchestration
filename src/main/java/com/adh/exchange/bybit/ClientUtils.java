@@ -8,6 +8,8 @@ import java.util.Set;
 // Maybe should be changed in the future
 public class ClientUtils {
 
+    public static final long RECV_WINDOW = 5000L;
+
     private ClientUtils() {
     }
 
