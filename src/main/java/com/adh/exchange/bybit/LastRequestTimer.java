@@ -18,47 +18,33 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class LastRequestTimer {
 
     private final AtomicInteger requests = new AtomicInteger(0);
-    private Instant lastUpdatedTime;
-    private final TimePair pair;
+    private final ServerTimeLookup timeLookup;
 
-    public LastRequestTimer(final TimePair timePair) {
-        this.pair = timePair;
+    public LastRequestTimer(final ServerTimeLookup timeLookup) {
+        this.timeLookup = timeLookup;
     }
 
     /**
      * TODO - Add documentation
      */
     public void updateRequest(final String seconds, final String nanoSeconds) {
-        this.pair.enableTime();
-
-        if (this.pair.timeIsNotInitialized()) {
-            this.setupInitialTime(seconds, nanoSeconds);
+        if(this.isFirstTimeLookup(seconds, nanoSeconds)) {
             return;
         }
 
         final Instant exactCurrentTime = this.parseResponseInstant(seconds, nanoSeconds);
-        this.setupServerTime(exactCurrentTime);
 
-        final Instant currentAppTime = Instant.now();
+        if (this.timeLookup.isLastStoredTimeInvalid()) {
+            this.setServerLookupTime(exactCurrentTime);
 
-        final Instant reducedTime = exactCurrentTime.minusMillis(ClientUtils.RECV_WINDOW);
+            requests.set(0);
+            return;
+        }
 
         // reset the count
         // this is not fully atomic, but just to have a metric for the start
         // afterwards there will be more fine-grained checking of time.
-        if (isLastUpdatedTimeInvalid(reducedTime.toEpochMilli())) {
-            requests.set(0);
-            return;
-        }
         requests.getAndIncrement();
-    }
-
-    private void setupInitialTime(final String seconds, final String nanoSeconds) {
-        final Instant exactCurrentTime = this.parseResponseInstant(seconds, nanoSeconds);
-        this.pair.setLastStoredServerTime(exactCurrentTime);
-        this.pair.setLastStoredCurrentAppTime();
-
-        this.requests.getAndIncrement();
     }
 
     /**
@@ -68,21 +54,10 @@ public class LastRequestTimer {
      * @return
      */
     public boolean isInvalidValidRequest() {
-        if (!this.pair.isTimeEnabled()) {
+        if (!this.timeLookup.isTimeEnabled()) {
             return false;
         }
-
-        // do the comparison check
-
-        return ;
-    }
-
-    /**
-     * Helper method to describe better how the inverse behavior is done.
-     * @return
-     */
-    public boolean isValidRequest() {
-        return !this.isInvalidValidRequest();
+        return this.timeLookup.isLastStoredTimeInvalid();
     }
 
     /**
@@ -91,7 +66,32 @@ public class LastRequestTimer {
      * @return
      */
     public String lastRequestTime() {
-        return this.pair.;
+        return String.valueOf(this.timeLookup.getLastStoredServerTime());
+    }
+
+    private boolean isFirstTimeLookup(final String seconds, final String nanoSeconds) {
+        if (!this.timeLookup.isTimeDisabled()) {
+            this.timeLookup.enableTime();
+            return true;
+        }
+
+        if (this.timeLookup.timeIsNotInitialized()) {
+            this.setupInitialTime(seconds, nanoSeconds);
+            return true;
+        }
+        return false;
+    }
+
+    private void setupInitialTime(final String seconds, final String nanoSeconds) {
+        final Instant exactCurrentTime = this.parseResponseInstant(seconds, nanoSeconds);
+        this.setServerLookupTime(exactCurrentTime);
+
+        this.requests.getAndIncrement();
+    }
+
+    private void setServerLookupTime(Instant exactCurrentTime) {
+        this.timeLookup.setLastStoredServerTime(exactCurrentTime);
+        this.timeLookup.setLastStoredCurrentAppTime();
     }
 
     private Instant parseResponseInstant(final String seconds, final String nanoSeconds) {
@@ -106,20 +106,5 @@ public class LastRequestTimer {
             throw new IllegalConfigurationException();
         }
         return Instant.ofEpochSecond(serverSeconds, serverNanoSeconds);
-    }
-
-    private void setupServerTime(final Instant currentTime) {
-        if (lastUpdatedTime == null) {
-            this.lastUpdatedTime = currentTime;
-        }
-    }
-
-    private boolean isLastUpdatedTimeValid(final long reducedTimeMilli) {
-        long reducedFromLastUpdatedTime = reducedTimeMilli - this.lastUpdatedTime.toEpochMilli();
-        return reducedFromLastUpdatedTime <= ClientUtils.RECV_WINDOW;
-    }
-
-    private boolean isLastUpdatedTimeInvalid(final long reducedTimeMilli) {
-        return this.isLastUpdatedTimeValid(reducedTimeMilli);
     }
 }

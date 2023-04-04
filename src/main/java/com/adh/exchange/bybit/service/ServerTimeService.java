@@ -1,5 +1,6 @@
 package com.adh.exchange.bybit.service;
 
+import com.adh.exchange.RemoteClientException;
 import com.adh.exchange.bybit.LastRequestTimer;
 import com.adh.exchange.bybit.api.client.ServerTimeClient;
 import com.adh.exchange.bybit.api.dto.ServerTimeRecord;
@@ -19,8 +20,12 @@ public class ServerTimeService {
 
     public String getLastRequestServerTime() {
         if (this.lastRequestTimer.isInvalidValidRequest()) {
-            //
             final ServerTimeResponse serverTimeResponse = this.timeClient.getCurrentServerTime();
+            if (serverTimeResponse == null) {
+                // unable to retrieve Bybit server time
+                // add appropriate exception message
+                throw new RemoteClientException();
+            }
 
             // when we receive the new server time we should update the requestTimer to keep in sync the lookup
             // we should pass the server time from the server, but internally keep track of your own time

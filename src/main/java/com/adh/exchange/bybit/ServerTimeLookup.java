@@ -5,28 +5,17 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 
 @Component
-public class TimePair implements Comparable<Instant> {
+public class ServerTimeLookup {
 
     // keep our own record of time
     private static final long REDUCED_TIME = ClientUtils.RECV_WINDOW - 500;
 
-    private Instant currentTime;
     private Instant lastStoredCurrentAppTime;
     private Instant lastStoredServerTime;
     private boolean isTimeEnabled;
 
-
-    private void updateCurrentTime() {
-
-        final Instant reducedTime = this.currentTime.minusMillis(REDUCED_TIME);
-    }
-
     public boolean isTimeInitialized() {
-        Boolean
-        if (this.lastStoredServerTime == null) {
-            return false;
-        }
-        return true;
+        return this.lastStoredServerTime != null && this.lastStoredCurrentAppTime != null;
     }
 
     public boolean timeIsNotInitialized() {
@@ -41,16 +30,32 @@ public class TimePair implements Comparable<Instant> {
         return this.isTimeEnabled;
     }
 
+    public boolean isTimeDisabled() {
+        return !this.isTimeEnabled();
+    }
+
     public void setLastStoredServerTime(final Instant serverTime) {
         this.lastStoredServerTime = serverTime;
+    }
+
+    public long getLastStoredServerTime() {
+        return lastStoredServerTime.toEpochMilli();
     }
 
     public void setLastStoredCurrentAppTime() {
         this.lastStoredCurrentAppTime = Instant.now();
     }
 
-    @Override
-    public int compareTo(Instant o) {
-        return 0;
+    public void currentAppTimeFromTime(Instant time) {
+        this.lastStoredCurrentAppTime = time;
+    }
+
+    public boolean isLastStoredTimeValid() {
+        long reducedTime = Instant.now().toEpochMilli() - this.lastStoredCurrentAppTime.toEpochMilli();
+        return reducedTime < REDUCED_TIME;
+    }
+
+    public boolean isLastStoredTimeInvalid() {
+        return !this.isLastStoredTimeValid();
     }
 }
