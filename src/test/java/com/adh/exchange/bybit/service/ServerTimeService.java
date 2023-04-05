@@ -1,4 +1,4 @@
-package com.adh.exchange.service;
+package com.adh.exchange.bybit.service;
 
 import com.adh.exchange.bybit.service.LastRequestLookupFacade;
 import org.junit.jupiter.api.Assertions;

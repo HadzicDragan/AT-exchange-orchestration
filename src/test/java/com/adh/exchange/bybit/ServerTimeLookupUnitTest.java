@@ -1,4 +1,4 @@
-package com.adh.exchange;
+package com.adh.exchange.bybit;
 
 import com.adh.exchange.bybit.ServerTimeLookup;
 
