@@ -1,7 +1,6 @@
 package com.adh.exchange.bybit.api.client;
 
 import com.adh.exchange.TypeConverter;
-import com.adh.exchange.bybit.api.client.ServerTimeClient;
 import com.adh.exchange.bybit.api.dto.ServerTimeResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

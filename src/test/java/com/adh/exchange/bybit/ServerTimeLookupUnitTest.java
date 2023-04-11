@@ -1,7 +1,5 @@
 package com.adh.exchange.bybit;
 
-import com.adh.exchange.bybit.ServerTimeLookup;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

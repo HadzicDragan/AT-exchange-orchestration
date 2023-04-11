@@ -32,9 +32,8 @@ public class LastRequestTimer {
             return;
         }
 
-        final Instant exactCurrentTime = this.parseResponseInstant(seconds, nanoSeconds);
-
         if (this.timeLookup.isLastStoredTimeInvalid()) {
+            final Instant exactCurrentTime = this.parseResponseInstant(seconds, nanoSeconds);
             this.setServerLookupTime(exactCurrentTime);
 
             requests.set(0);
@@ -53,9 +52,9 @@ public class LastRequestTimer {
      * the latest server time.
      * @return
      */
-    public boolean isInvalidValidRequest() {
-        if (!this.timeLookup.isTimeEnabled()) {
-            return false;
+    public boolean isInvalidLastLookupRequest() {
+        if (this.timeLookup.isTimeDisabled()) {
+            return true;
         }
         return this.timeLookup.isLastStoredTimeInvalid();
     }
@@ -70,9 +69,8 @@ public class LastRequestTimer {
     }
 
     private boolean isFirstTimeLookup(final String seconds, final String nanoSeconds) {
-        if (!this.timeLookup.isTimeDisabled()) {
+        if (this.timeLookup.isTimeDisabled()) {
             this.timeLookup.enableTime();
-            return true;
         }
 
         if (this.timeLookup.timeIsNotInitialized()) {

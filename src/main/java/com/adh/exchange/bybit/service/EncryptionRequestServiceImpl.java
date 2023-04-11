@@ -23,18 +23,18 @@ public class EncryptionRequestServiceImpl implements EncryptionRequestService {
     private static final String ENCRYPTION_ALGO = "HmacSHA256";
 
     private final BybitSecret secret;
-    private final LastRequestLookupFacade lastRequestLookup;
+    private final ServerTimeService timeService;
     private final TypeConverter converter;
 
-    public EncryptionRequestServiceImpl(final LastRequestLookupFacade lookupFacade, final BybitSecret secret, TypeConverter converter) {
-        this.lastRequestLookup = lookupFacade;
+    public EncryptionRequestServiceImpl(final ServerTimeService timeService, final BybitSecret secret, TypeConverter converter) {
+        this.timeService = timeService;
         this.secret = secret;
         this.converter = converter;
     }
 
     @Override
     public Map<String, String> createGETHeaders(Map<String, Object> requestParams) {
-        final String serverTime = this.lastRequestLookup.getServerTime();
+        final String serverTime = this.timeService.getLastRequestServerTime();
         final String signature = this.generateGETSignature(requestParams, serverTime);
 
         return this.createHeaders(signature, serverTime);
@@ -42,7 +42,7 @@ public class EncryptionRequestServiceImpl implements EncryptionRequestService {
 
     @Override
     public Map<String, String> createPOSTHeaders(final Map<String, Object> requestParams) {
-        final String serverTime = this.lastRequestLookup.getServerTime();
+        final String serverTime = this.timeService.getLastRequestServerTime();
         final String signature = this.generatePOSTSignature(requestParams, serverTime);
 
         return this.createHeaders(signature, serverTime);
